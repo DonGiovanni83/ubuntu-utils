@@ -1,0 +1,60 @@
+#!/bin/bash
+# Script to increase or decrease Screen brightnes
+# Author: Fabio Bertagna
+
+# check valid input parameter count
+if [ "$#" -ne 1 ]; then
+  echo "brightness-controller requires only one parameter"
+  exit
+fi
+
+declare -A displays
+
+# Initialize values
+for DISP in $(xrandr -q | grep " connected" | cut -d' ' -f1)
+do
+  displays[$DISP]="$(bc -l <<< "$(xrandr --verbose | grep $DISP -A5 | tail -1 | cut -f2 -d ' ' ) * 10")"
+  echo "display: $DISP"
+  echo "brightness: ${displays[$DISP]}"
+done
+
+INPUT_COMMAND="$1"
+
+unset DISP
+
+# check if input parameter is valid
+case "$INPUT_COMMAND" in
+  up)
+    for DISP in "${!displays[@]}"
+    do
+      VAL="${displays[$DISP]}"
+      echo $VAL
+      if [[ "${VAL%.*}" -ge 10 ]]; then
+        VAL=10
+      else
+        VAL="$(bc -l <<< "$VAL + 1")"
+      fi
+      echo "current VAL: $VAL"
+      xrandr --output $DISP --brightness "$(bc -l <<< "$VAL / 10")"
+
+    done
+    exit
+    ;;
+  down)
+    for DISP in "${!displays[@]}"
+    do
+      VAL="${displays[$DISP]}"
+      echo $VAL
+      if [[ "${VAL%.*}" -le 0 ]]; then
+        VAL=0
+      else
+        VAL="$(bc -l <<< "$VAL - 1")"
+      fi
+      echo "current VAL: $VAL"
+      xrandr --output $DISP --brightness "$(bc -l <<< "$VAL / 10")"
+    done
+    exit
+    ;;
+  *)
+    echo "Invalid parameter - only valid parameters are 'up' or 'down'"
+esac
